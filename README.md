@@ -86,3 +86,4 @@ app/src/main/java/ir/factory/entryexit/
 - همگام‌سازی ابری (اختیاری) برای پشتیبان‌گیری چند-دستگاهی.
 # sobhan
 # sobhan
+# sobhan
