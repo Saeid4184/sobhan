@@ -25,8 +25,3 @@ data class PersonEntity(
     @ColumnInfo(name = "lastEventAt")
     var lastEventAt: Long = System.currentTimeMillis()   // تاریخچه زمانی برای اولویت همگام‌سازی و کوئری‌ها
 ) : Serializable
-```
-eob
-
-### راهنمای گام دوم برای حل مشکل:
-کدهای بالا را کپی کرده و در مخزن گیت‌هاب خود جایگزین فایل قبلی `PersonEntity.kt` کنید. به محض ذخیره (Commit)، سرورهای گیت‌هاب پروژه شما را بدون هیچ خطایی کامپایل کرده و فایل نصب آماده (`APK`) را بدون باگ در اختیارتان قرار خواهند داد.
