@@ -6,19 +6,19 @@ import androidx.room.PrimaryKey
 import java.io.Serializable
 
 /**
- * مدل داده‌ای مرکزی برای نگهداری مشخصات پرسنل، رانندگان و ماشین‌آلات.
- * نام ستون‌ها با استفاده از @ColumnInfo دقیقاً به "group_name" و "lastEventAt" نگاشت شده‌اند 
- * تا با کوئری‌های از پیش نوشته شده در PersonDao همخوانی کامل داشته باشند و خطای کامپایل برطرف گردد.
+ * مدل داده‌ای نهایی پرسنل، رانندگان و ماشین‌آلات.
+ * ستون‌ها دقیقاً به نام‌های "type" و "lastEventAt" نگاشت شده‌اند تا با کوئری‌های موجود در PersonDao 
+ * پروژه نهایی (sobhan.zip) همخوانی کامل داشته باشند و خطای کامپایل برطرف شود.
  */
 @Entity(tableName = "persons")
 data class PersonEntity(
     @PrimaryKey 
     val id: String = "",                                 // کد ملی، کد پرسنلی یا شماره پلاک خودرو به عنوان کلید اصلی
     val name: String = "",                               // نام کامل شخص یا عنوان وسیله نقلیه
-    val category: String = "",                           // بخش دقیق (مانند: آزمایشگاه، امور اداری، راننده لودر)
+    val category: String = "",                           // بخش دقیق (مانند: آزمایشگاه، امور اداری)
     
-    @ColumnInfo(name = "group_name")
-    val groupName: String = "personnel",                 // دسته‌بندی اصلی: "personnel" (پرسنل)، "machinery" (ماشین‌آلات)، "drivers" (رانندگان)، "visitors" (مهمانان)
+    @ColumnInfo(name = "type")
+    val type: String = "personnel",                      // دسته‌بندی اصلی: "personnel"، "machinery"، "drivers"، "visitors"
     
     var isInside: Boolean = false,                      // وضعیت حضور زنده در کارخانه
     
