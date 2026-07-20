@@ -1,3 +1,14 @@
+plugins {
+id 'com.android.application'
+id 'org.jetbrains.kotlin.android'
+id 'com.google.devtools.ksp'
+id 'com.google.gms.google-services' // فعال‌سازی پلاگین خدمات گوگل فایربیس
+}
+
+android {
+namespace 'ir.factory.entryexit'
+compileSdk 34
+
 defaultConfig {
     applicationId "ir.factory.entryexit"
     minSdk 24
@@ -27,3 +38,35 @@ kotlinOptions {
 buildFeatures {
     viewBinding true
 }
+
+
+}
+
+dependencies {
+// کتابخانه‌های پایه اندروید و متریال دیزاین
+implementation 'androidx.core:core-ktx:1.12.0'
+implementation 'androidx.appcompat:appcompat:1.6.1'
+implementation 'com.google.android.material:material:1.11.0'
+implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
+implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+implementation 'androidx.navigation:navigation-fragment-ktx:2.7.7'
+implementation 'androidx.navigation:navigation-ui-ktx:2.7.7'
+
+// کتابخانه دیتابیس Room و مفسر KSP
+def roomVersion = "2.6.1"
+implementation "androidx.room:room-runtime:$roomVersion"
+implementation "androidx.room:room-ktx:$roomVersion"
+ksp "androidx.room:room-compiler:$roomVersion"
+
+// کوئری‌ها و ترد پس‌زمینه Coroutines
+implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+
+// پلتفرم فایربیس و دیتابیس ابری زنده (Firestore) جهت سینک همزمان ۵ گوشی
+implementation platform('com.google.firebase:firebase-bom:34.15.0')
+implementation 'com.google.firebase:firebase-firestore'
+
+// ابزارهای تست
+testImplementation 'junit:junit:4.13.2'
+androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+androidTestImplementation 'androidx.test.espresso
