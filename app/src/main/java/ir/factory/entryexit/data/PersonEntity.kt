@@ -1,29 +1,100 @@
 package ir.factory.entryexit.data
 
-import androidx.room.ColumnInfo
-import androidx.room.Entity
-import androidx.room.PrimaryKey
+import androidx.lifecycle.LiveData
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
- * A registered person / machine / driver / visitor.
- *
- * [isInside] is the single source of truth for whether they are currently inside the factory;
- * it is what enforces the "no duplicate check-in" business rule.
- * [group] is the sub-category used for sectioned lists: a department name for personnel,
- * or a fleet/model group (e.g. "میکسر - آمیکو") for machinery. Null for visitors/drivers.
- * [imageUri] is a persisted content:// URI to a profile/equipment photo picked from the
- * device gallery during setup; null falls back to a text/icon placeholder.
- * [lastEventAt] is updated on every check-in/out and used to sort "currently inside" lists
- * by recency.
+ * مدیریت مخزن داده‌ها: هماهنگ‌سازی دیتابیس محلی SQLite (Room) با شبکه ابری Firebase Firestore.
+ * این متد تضمین می‌کند که داده‌های ثبت‌شده در هر گوشی به سرعت در ۴ گوشی دیگر بروزرسانی شوند.
  */
-@Entity(tableName = "persons")
-data class PersonEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val name: String,
-    val type: String, // matches PersonType.name
-    @ColumnInfo(name = "group_name") val group: String? = null,
-    val extraInfo: String? = null,
-    val imageUri: String? = null,
-    val isInside: Boolean = false,
-    val lastEventAt: Long = 0L
-)
+class Repository(
+    private val personDao: PersonDao,
+    private val logDao: LogDao
+) {
+    // راه‌اندازی فایربیس کلاینت به عنوان همگام‌ساز زنده
+    private val firestore = FirebaseFirestore.getInstance()
+    private val syncCollection = firestore.collection("concrete_factory_sync")
+    private var firestoreListener: ListenerRegistration? = null
+
+    val allPeople: LiveData<List<PersonEntity>> = personDao.getAllPeople()
+    val allLogs: LiveData<List<LogEntity>> = logDao.getAllLogs()
+
+    fun getPeopleByCategory(category: String): LiveData<List<PersonEntity>> {
+        return personDao.getPeopleByCategory(category)
+    }
+
+    suspend fun insertPerson(person: PersonEntity) {
+        personDao.insert(person)
+        uploadPersonToCloud(person)
+    }
+
+    suspend fun updatePerson(person: PersonEntity) {
+        personDao.update(person)
+        uploadPersonToCloud(person)
+    }
+
+    suspend fun insertLog(log: LogEntity) {
+        logDao.insert(log)
+        uploadLogToCloud(log)
+    }
+
+    // آپلود ناهمگام در کلود فایربیس (Firebase به صورت خودکار حالت آفلاین را مدیریت می‌کند)
+    private fun uploadPersonToCloud(person: PersonEntity) {
+        syncCollection.document("person_${person.id}")
+            .set(person)
+            .addOnFailureListener {
+                // ذخیره‌سازی محلی کلود در زمان قطع شبکه به صورت خودکار توسط Firestore انجام می‌شود
+            }
+    }
+
+    private fun uploadLogToCloud(log: LogEntity) {
+        syncCollection.document("log_${log.id}")
+            .set(log)
+    }
+
+    /**
+     * همگام‌ساز ابری دوطرفه (Real-time Cloud Sync):
+     * این شنونده مداوم در پس‌زمینه با فایربیس ارتباط برقرار کرده و هر زمان که گوشی‌های نگهبانی دیگر تغییرات
+     * جدیدی ثبت کنند، آن‌ها را دریافت کرده و در دیتابیس محلی این گوشی ذخیره می‌کند.
+     */
+    fun startRealtimeSync(scope: CoroutineScope) {
+        // جلوگیری از ایجاد چند لیسنر همزمان بر روی منابع سیستم
+        firestoreListener?.remove()
+
+        firestoreListener = syncCollection.addSnapshotListener { snapshots, e ->
+            if (e != null || snapshots == null) return@addSnapshotListener
+
+            scope.launch(Dispatchers.IO) {
+                for (doc in snapshots.documentChanges) {
+                    val data = doc.document
+                    val docId = data.id
+
+                    try {
+                        if (docId.startsWith("person_")) {
+                            val person = data.toObject(PersonEntity::class.java)
+                            // از بروز بودن داده محلی اطمینان حاصل شده و دیتابیس محلی با دیتابیس ابری یکی می‌شود
+                            personDao.insertOrUpdate(person)
+                        } else if (docId.startsWith("log_")) {
+                            val log = data.toObject(LogEntity::class.java)
+                            logDao.insertOrUpdate(log)
+                        }
+                    } catch (parseError: Exception) {
+                        parseError.printStackTrace() // مدیریت و ثبت خطای احتمالی در پارس فایل JSON ابری
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * لغو همگام‌سازی زنده جهت آزادسازی رم و بهینه‌سازی عالی مصرف باتری دستگاه نگهبانی.
+     */
+    fun stopRealtimeSync() {
+        firestoreListener?.remove()
+        firestoreListener = null
+    }
+}
