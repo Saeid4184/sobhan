@@ -9,6 +9,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import ir.factory.entryexit.databinding.FragmentCategoryBinding
 import ir.factory.entryexit.data.PersonEntity
+import ir.factory.entryexit.data.PersonType
 import ir.factory.entryexit.ui.GroupedPersonAdapter
 import ir.factory.entryexit.viewmodel.FactoryViewModel
 
@@ -19,15 +20,15 @@ class CategoryFragment : Fragment() {
     
     private val viewModel: FactoryViewModel by activityViewModels()
     private lateinit var adapter: GroupedPersonAdapter
-    private var categoryName: String = ""
+    private lateinit var personType: PersonType
 
     companion object {
-        private const val ARG_CATEGORY = "category_name"
+        private const val ARG_TYPE = "person_type"
 
-        fun newInstance(category: String): CategoryFragment {
+        fun newInstance(type: PersonType): CategoryFragment {
             val fragment = CategoryFragment()
             val args = Bundle()
-            args.putString(ARG_CATEGORY, category)
+            args.putSerializable(ARG_TYPE, type)
             fragment.arguments = args
             return fragment
         }
@@ -35,7 +36,7 @@ class CategoryFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        categoryName = arguments?.getString(ARG_CATEGORY) ?: ""
+        personType = arguments?.getSerializable(ARG_TYPE) as? PersonType ?: PersonType.PERSONNEL
     }
 
     override fun onCreateView(
@@ -52,28 +53,26 @@ class CategoryFragment : Fragment() {
         // متغیر کنترل کلیک برای ممانعت از ثبت تکراری به دلیل کلیک‌های سریع و پیاپی نگهبان
         var lastClickTime: Long = 0
 
-        adapter = GroupedPersonAdapter(
-            onItemClick = { person ->
-                val currentTime = System.currentTimeMillis()
-                if (currentTime - lastClickTime < 800) {
-                    return@GroupedPersonAdapter // ممانعت از دبل‌کلیک ناخواسته
-                }
-                lastClickTime = currentTime
-
-                // ثبت تردد بدون دیالوگ آزاردهنده "آیا مطمئن هستید؟" به صورت مستقیم و آنی
-                if (person.isInside) {
-                    viewModel.checkOut(person)
-                } else {
-                    viewModel.checkIn(person)
-                }
+        adapter = GroupedPersonAdapter { person ->
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastClickTime < 800) {
+                return@GroupedPersonAdapter // ممانعت از دبل‌کلیک ناخواسته
             }
-        )
+            lastClickTime = currentTime
+
+            // ثبت تردد بدون دیالوگ آزاردهنده "آیا مطمئن هستید؟" به صورت مستقیم و آنی با تکیه بر آداپتور اصلی پروژه
+            if (person.isInside) {
+                viewModel.checkOut(person.id) { }
+            } else {
+                viewModel.checkIn(person.id) { }
+            }
+        }
 
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
 
         // مانیتورینگ زنده داده‌ها از طریق لایو دیتای متصل به دیتابیس محلی همگام‌شده
-        viewModel.getPeopleByCategory(categoryName).observe(viewLifecycleOwner) { people ->
+        viewModel.getPersonsByType(personType).observe(viewLifecycleOwner) { people ->
             adapter.submitList(people)
         }
     }
