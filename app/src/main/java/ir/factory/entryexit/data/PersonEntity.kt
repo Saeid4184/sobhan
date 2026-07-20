@@ -6,9 +6,9 @@ import java.io.Serializable
 
 /**
  * مدل داده‌ای مرکزی برای نگهداری مشخصات پرسنل، رانندگان و ماشین‌آلات.
- * این مدل با دیتابیس Room محلی و Firebase Cloud کاملاً سازگار و همگام است.
+ * نام جدول دقیقاً بر روی "persons" تنظیم شده تا با کوئری‌های PersonDao کاملاً مطابقت داشته باشد و خطای KSP برطرف گردد.
  */
-@Entity(tableName = "people_directory")
+@Entity(tableName = "persons")
 data class PersonEntity(
     @PrimaryKey 
     val id: String = "",                  // کد ملی، کد پرسنلی یا شماره پلاک خودرو به عنوان کلید اصلی
